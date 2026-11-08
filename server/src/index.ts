@@ -69,7 +69,7 @@ process.on('unhandledRejection', (reason: unknown) => {
 
 connectDb()
   .then(() => {
-    app.listen(env.port, () => console.log(`API listening on http://localhost:${env.port}`));
+    app.listen(env.port, () => console.log(`API listening on ${env.port}`));
   })
   .catch((err: unknown) => {
     console.error('Failed to start server', err);
