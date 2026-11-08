@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { Panel } from './components/Panel';
 import { VillageBar } from './components/VillageBar';
@@ -13,6 +13,24 @@ type Tab = 'village' | 'planner';
 
 const fmt = (iso: string | null): string =>
   iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'unknown';
+
+function WakingUp({ text }: { text: string }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setSlow(true), 4000);
+    return () => window.clearTimeout(id);
+  }, []);
+  return (
+    <div className="p-8 text-center">
+      <p className="stroke text-2xl">{text}</p>
+      {slow && (
+        <p className="stroke mt-3 text-sm">
+          The server is waking up after being idle. This can take up to a minute, then it will be fast again.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function Main() {
   const { user, logout } = useAuth();
@@ -43,7 +61,7 @@ function Main() {
       </nav>
 
       {loading ? (
-        <p className="stroke p-6 text-center text-xl">Loading your villages…</p>
+        <WakingUp text="Loading your villages…" />
       ) : (
         <>
           <VillageBar />
@@ -73,7 +91,7 @@ export default function App() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <p className="stroke p-8 text-center text-2xl">Loading…</p>;
+    return <WakingUp text="Loading…" />;
   }
   if (!user) return <AuthPage />;
 

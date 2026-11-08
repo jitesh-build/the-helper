@@ -10,15 +10,16 @@ import { requireAuth } from './middleware/auth';
 import { authRouter } from './routes/auth';
 import { meRouter } from './routes/me';
 import { upgradesRouter } from './routes/upgrades';
-import { errorHandler } from './utils/http';
 import { villagesRouter } from './routes/villages';
+import { errorHandler } from './utils/http';
 
 const app = express();
 app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({ origin: env.clientOrigins }));
+app.use(cors({ origin: env.clientOrigins, maxAge: 600 }));
 app.use(express.json({ limit: '1mb' }));
 
+// Health check comes first so uptime monitors are never rate limited.
 app.get('/api/health', (_req, res) => {
   const dbUp = mongoose.connection.readyState === 1;
   res.status(dbUp ? 200 : 503).json({ ok: dbUp });
@@ -37,7 +38,6 @@ const limiter = (windowMs: number, limit: number, skipSuccessfulRequests = false
 app.use('/api', limiter(15 * 60_000, 600));
 app.use('/api/auth/login', limiter(15 * 60_000, 10, true)); // only failed logins count
 app.use('/api/auth/register', limiter(60 * 60_000, 5));
-
 
 app.use('/api/auth', authRouter);
 app.use('/api/villages', requireAuth, villagesRouter);
@@ -67,11 +67,10 @@ process.on('unhandledRejection', (reason: unknown) => {
   console.error('Unhandled rejection', reason);
 });
 
-connectDb()
-  .then(() => {
-    app.listen(env.port, () => console.log(`API listening on ${env.port}`));
-  })
-  .catch((err: unknown) => {
-    console.error('Failed to start server', err);
-    process.exit(1);
-  });
+// Listen first, connect to the database second.
+server = app.listen(env.port, '0.0.0.0', () => console.log(`API listening on port ${env.port}`));
+
+connectDb().catch((err: unknown) => {
+  console.error('Failed to connect to MongoDB', err);
+  process.exit(1);
+});
