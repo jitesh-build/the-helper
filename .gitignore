@@ -1,0 +1,64 @@
+# ---------- Dependencies ----------
+node_modules/
+.pnp
+.pnp.js
+
+# ---------- Secrets (NEVER commit) ----------
+# Commit .env.example instead, with placeholder values only
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---------- Build output ----------
+dist/
+build/
+out/
+*.tsbuildinfo
+client/vite.config.js
+client/vite.config.d.ts
+
+# ---------- Logs ----------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- Runtime / cache ----------
+.cache/
+.vite/
+.eslintcache
+.parcel-cache/
+coverage/
+.nyc_output/
+*.pid
+
+# ---------- Deploy tooling ----------
+.vercel/
+.netlify/
+.render/
+
+# ---------- Editors / OS ----------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Local scratch ----------
+*.local
+tmp/
+temp/
+*.bak
+*.orig
+
+# ---------- Intentionally NOT ignored ----------
+# package-lock.json         -> commit it (reproducible installs)
+# client/src/data/gameData.json, gameDataMeta.json -> the client imports these at build time
+# server/data/seed.json     -> needed to seed the upgrade catalogue

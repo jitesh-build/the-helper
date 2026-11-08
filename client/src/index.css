@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply font-clash text-white antialiased;
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* keep content clear of notches / home indicators (needs viewport-fit=cover) */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    overflow-x: clip;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.12), transparent 40%),
+      repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.05) 0 20px, transparent 20px 40px),
+      linear-gradient(#58a82f, #2f6a17);
+  }
+  button,
+  select,
+  input,
+  textarea,
+  label {
+    touch-action: manipulation; /* no double-tap zoom delay */
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border-4 border-coc-woodDark bg-coc-wood p-3 shadow-xl sm:p-4;
+    box-shadow: inset 0 0 0 3px rgba(255, 210, 63, 0.25), 0 8px 0 rgba(0, 0, 0, 0.3);
+  }
+  .panel-title {
+    @apply text-lg text-coc-gold sm:text-xl;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  }
+  .field {
+    /* 16px text stops iOS Safari zooming into inputs */
+    @apply w-full min-w-0 max-w-full rounded-md border-2 border-coc-woodDark bg-coc-parchment px-2 py-1.5 text-base text-coc-woodDark outline-none focus:ring-2 focus:ring-coc-gold;
+  }
+  .label {
+    @apply mb-1 block text-sm text-coc-parchment;
+  }
+  .btn {
+    @apply rounded-lg border-2 border-coc-woodDark px-3 py-1.5 text-coc-woodDark transition hover:brightness-110 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  }
+  .btn-gold {
+    @apply btn bg-gradient-to-b from-yellow-200 to-coc-gold;
+  }
+  .btn-green {
+    @apply btn bg-gradient-to-b from-lime-300 to-green-500;
+  }
+  .btn-red {
+    @apply btn bg-gradient-to-b from-red-300 to-red-500 text-white;
+  }
+  .chip {
+    @apply rounded-full border-2 border-coc-woodDark px-3 py-1 text-sm;
+  }
+  .stroke {
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  }
+}
+
+/* Touch screens: comfortable tap targets (Apple/Google recommend ~44px) */
+@media (pointer: coarse) {
+  .btn,
+  .btn-gold,
+  .btn-green,
+  .btn-red {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .field {
+    min-height: 44px;
+  }
+  .chip {
+    min-height: 40px;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast-in {
+  animation: toast-in 0.18s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-in {
+    animation: none;
+  }
+}

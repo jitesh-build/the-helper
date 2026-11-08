@@ -1,0 +1,13 @@
+{
+  "name": "coc-upgrade-planner",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -n server,client -c yellow,cyan \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "seed": "npm --prefix server run seed",
+    "gamedata": "npm --prefix server run gamedata"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
