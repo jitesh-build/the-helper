@@ -9,10 +9,23 @@ const REPO = 'ClashKingInc/ClashKingAssets';
 const SOURCE = `https://raw.githubusercontent.com/${REPO}/main/assets/static_data.json`;
 const FEED = `https://github.com/${REPO}/commits/main/assets/static_data.json.atom`;
 
-const SOURCES = ['buildings', 'traps', 'troops', 'spells', 'heroes', 'pets'] as const;
+const CORE_SOURCES = ['buildings', 'traps', 'troops', 'spells', 'heroes', 'pets'] as const;
+// Guardians are loaded too, but their section is looked up by name in main() and may be absent.
+const SOURCES = [...CORE_SOURCES, 'guardians'] as const;
 type Source = (typeof SOURCES)[number];
 type Kind = 'builder' | 'lab' | 'pet';
-type Group = 'army' | 'defense' | 'hero' | 'resource' | 'other' | 'troop' | 'spell' | 'siege' | 'pet';
+type Group =
+  | 'army'
+  | 'defense'
+  | 'trap'
+  | 'hero'
+  | 'guardian'
+  | 'resource'
+  | 'other'
+  | 'troop'
+  | 'spell'
+  | 'siege'
+  | 'pet';
 type Resource = 'gold' | 'elixir' | 'darkElixir';
 
 interface RawLevel {
@@ -58,9 +71,11 @@ function classify(source: Source, e: RawEntity): { kind: Kind; group: Group } {
       return { kind: 'builder', group };
     }
     case 'traps':
-      return { kind: 'builder', group: 'other' };
+      return { kind: 'builder', group: 'trap' };
     case 'heroes':
       return { kind: 'builder', group: 'hero' };
+    case 'guardians':
+      return { kind: 'builder', group: 'guardian' };
     case 'troops':
       return { kind: 'lab', group: e.production_building === 'Workshop' ? 'siege' : 'troop' };
     case 'spells':
@@ -89,17 +104,42 @@ async function main(): Promise<void> {
   const raw = (await res.json()) as Record<string, RawEntity[] | undefined>;
 
   // Guard against the source changing shape: fail loudly instead of writing a broken catalog.
-  const minimum: Record<Source, number> = { buildings: 70, traps: 10, troops: 90, spells: 18, heroes: 8, pets: 12 };
-  for (const s of SOURCES) {
+  const minimum: Record<(typeof CORE_SOURCES)[number], number> = {
+    buildings: 70,
+    traps: 10,
+    troops: 90,
+    spells: 18,
+    heroes: 8,
+    pets: 12,
+  };
+  for (const s of CORE_SOURCES) {
     const n = raw[s]?.length ?? 0;
     if (n < minimum[s]) throw new Error(`Unexpected data: only ${n} ${s} (expected at least ${minimum[s]}).`);
+  }
+
+  // Guardians: use the "guardians" section, or any top-level key with "guardian" in its name.
+  // Missing guardians do not stop the build, but they are reported loudly (they went unnoticed before).
+  const guardianKey = raw.guardians ? 'guardians' : Object.keys(raw).find((k) => /guardian/i.test(k));
+  const sections: Record<Source, RawEntity[] | undefined> = {
+    buildings: raw.buildings,
+    traps: raw.traps,
+    troops: raw.troops,
+    spells: raw.spells,
+    heroes: raw.heroes,
+    pets: raw.pets,
+    guardians: guardianKey ? raw[guardianKey] : undefined,
+  };
+  if (!sections.guardians?.length) {
+    console.warn(`WARNING: no guardians found in the source. Top-level keys: ${Object.keys(raw).join(', ')}`);
+  } else {
+    console.log(`Guardians read from "${guardianKey}": ${sections.guardians.length} entities`);
   }
 
   const client: Record<string, ClientEntity> = {};
   const seed = new Map<string, SeedRow>();
 
   for (const source of SOURCES) {
-    for (const e of raw[source] ?? []) {
+    for (const e of sections[source] ?? []) {
       const village = e.village === 'builderBase' ? 'builderBase' : 'home';
       const resource = e.upgrade_resource ? RESOURCES[e.upgrade_resource] : undefined;
       const { kind, group } = classify(source, e);
@@ -141,6 +181,12 @@ async function main(): Promise<void> {
   console.log(`Source last changed: ${meta.sourceUpdatedAt ?? 'unknown'}`);
   console.log(`gameData.json: ${Object.keys(client).length} entities`);
   console.log(`seed.json: ${seed.size} upgrade rows`);
+  const byGroup = new Map<string, number>();
+  for (const row of seed.values()) byGroup.set(row.group, (byGroup.get(row.group) ?? 0) + 1);
+  console.log(`rows per group: ${[...byGroup].map(([g, n]) => `${g}=${n}`).join(', ')}`);
+  if (!byGroup.get('guardian')) {
+    console.warn('WARNING: no guardian upgrade rows were produced (missing times or upgrade_resource in the source?).');
+  }
 }
 
 main().catch((err: unknown) => {

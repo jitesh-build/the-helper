@@ -18,7 +18,7 @@ export const hasLevel = (entityId: number, level: number): boolean =>
 
 export function kindOfEntity(entityId: number): Kind | null {
   const g = GAME[String(entityId)]?.g;
-  if (g === 'buildings' || g === 'traps' || g === 'heroes') return 'builder';
+  if (g === 'buildings' || g === 'traps' || g === 'heroes' || g === 'guardians') return 'builder';
   if (g === 'troops' || g === 'spells') return 'lab';
   if (g === 'pets') return 'pet';
   return null;

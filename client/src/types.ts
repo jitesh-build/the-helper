@@ -1,7 +1,18 @@
 import type { PotionBlock, QueueItem } from './village/planning';
 
 export type Kind = 'builder' | 'lab' | 'pet';
-export type Group = 'army' | 'defense' | 'hero' | 'resource' | 'other' | 'troop' | 'spell' | 'siege' | 'pet';
+export type Group =
+  | 'army'
+  | 'defense'
+  | 'trap'
+  | 'hero'
+  | 'guardian'
+  | 'resource'
+  | 'other'
+  | 'troop'
+  | 'spell'
+  | 'siege'
+  | 'pet';
 export type Resource = 'gold' | 'elixir' | 'darkElixir';
 export type Reduction = 0 | 10 | 15 | 20;
 

@@ -213,7 +213,9 @@ const GROUPS: Record<Kind, { value: Group; label: string }[]> = {
   builder: [
     { value: 'army', label: 'Army' },
     { value: 'defense', label: 'Defense' },
+    { value: 'trap', label: 'Trap' },
     { value: 'hero', label: 'Hero' },
+    { value: 'guardian', label: 'Guardian' },
     { value: 'resource', label: 'Resource' },
     { value: 'other', label: 'Other' },
   ],

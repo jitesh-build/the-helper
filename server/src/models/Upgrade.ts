@@ -7,7 +7,7 @@ const upgradeSchema = new Schema<UpgradeInput>(
     name: { type: String, required: true, trim: true },
     group: {
       type: String,
-      enum: ['army', 'defense', 'hero', 'resource', 'other', 'troop', 'spell', 'siege', 'pet'],
+      enum: ['army', 'defense', 'trap', 'hero', 'guardian', 'resource', 'other', 'troop', 'spell', 'siege', 'pet'],
       required: true,
     },
     level: { type: Number, required: true, min: 1 }, // the level you are upgrading TO

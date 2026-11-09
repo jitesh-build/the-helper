@@ -109,6 +109,7 @@ export function parseVillage(text: string): VillageSnapshot {
   const buildings = readEntries(root, 'buildings');
   const traps = readEntries(root, 'traps');
   const heroes = readEntries(root, 'heroes');
+  const guardians = readEntries(root, 'guardians');
   const units = readEntries(root, 'units');
   const spells = readEntries(root, 'spells');
   const siege = readEntries(root, 'siege_machines');
@@ -122,13 +123,20 @@ export function parseVillage(text: string): VillageSnapshot {
     tag: typeof root.tag === 'string' ? root.tag : null,
     exportedAtMs: typeof root.timestamp === 'number' ? root.timestamp * 1000 : null,
     builderCount,
-    builders: [...toUpgrades(buildings, 'b'), ...toUpgrades(traps, 't'), ...toUpgrades(heroes, 'h')],
+    // Guardians are upgraded by a builder, just like buildings, traps and heroes.
+    builders: [
+      ...toUpgrades(buildings, 'b'),
+      ...toUpgrades(traps, 't'),
+      ...toUpgrades(heroes, 'h'),
+      ...toUpgrades(guardians, 'g'),
+    ],
     lab: [...toUpgrades(units, 'u'), ...toUpgrades(spells, 's'), ...toUpgrades(siege, 'm')],
     pets: toUpgrades(pets, 'p'),
     owned: [
       ...toOwned(buildings),
       ...toOwned(traps),
       ...toOwned(heroes),
+      ...toOwned(guardians),
       ...toOwned(units),
       ...toOwned(spells),
       ...toOwned(siege),

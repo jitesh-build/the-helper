@@ -1,7 +1,19 @@
 import { z } from 'zod';
 
 export const kindSchema = z.enum(['builder', 'lab', 'pet']);
-export const groupSchema = z.enum(['army', 'defense', 'hero', 'resource', 'other', 'troop', 'spell', 'siege', 'pet']);
+export const groupSchema = z.enum([
+  'army',
+  'defense',
+  'trap',
+  'hero',
+  'guardian',
+  'resource',
+  'other',
+  'troop',
+  'spell',
+  'siege',
+  'pet',
+]);
 export const resourceSchema = z.enum(['gold', 'elixir', 'darkElixir']);
 export const reductionSchema = z.union([z.literal(0), z.literal(10), z.literal(15), z.literal(20)]);
 
