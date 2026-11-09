@@ -46,19 +46,8 @@ function laneStyle(index: number): CSSProperties {
   };
 }
 
-/** 2 columns on phones (readable bars), 4 columns everywhere else */
-function useColumns(): number {
-  const query = '(max-width: 519px)';
-  const [narrow, setNarrow] = useState<boolean>(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const update = () => setNarrow(mq.matches);
-    mq.addEventListener('change', update);
-    update();
-    return () => mq.removeEventListener('change', update);
-  }, []);
-  return narrow ? 2 : 4;
-}
+/** 4 columns on every screen size (phones included) */
+const COLS = 4;
 
 /** local calendar days that Hammer Jam touches, plus a closing boundary */
 function buildDays(startMs: number, endMs: number): number[] {
@@ -357,7 +346,7 @@ export function CalendarPanel({
   const [kind, setKind] = useState<Kind>('builder');
   const [selected, setSelected] = useState<number | null>(null);
   const [focusLane, setFocusLane] = useState<number | null>(null);
-  const cols = useColumns();
+  const cols = COLS;
 
   const days = useMemo(() => buildDays(HAMMER_JAM_START_MS, HAMMER_JAM_END_MS), []);
   const n = days.length - 1;
@@ -411,7 +400,7 @@ export function CalendarPanel({
       out.push(
         <div
           key={`${s.id}-${r}`}
-          className="absolute flex items-center overflow-hidden border border-black/50 px-1 text-[11px] font-semibold leading-none text-[#1f1308]"
+          className="absolute flex items-center overflow-hidden border border-black/50 px-0.5 text-[9px] font-semibold leading-none text-[#1f1308] sm:px-1 sm:text-[11px]"
           style={{
             left: `${c.left}%`,
             width: `${c.width}%`,
@@ -447,7 +436,7 @@ export function CalendarPanel({
       out.push(
         <div
           key={`potion-${i}-${r}`}
-          className="absolute flex items-center overflow-hidden rounded-md border border-black/50 bg-coc-elixir px-1 text-[11px] font-semibold leading-none text-white"
+          className="absolute flex items-center overflow-hidden rounded-md border border-black/50 bg-coc-elixir px-0.5 text-[9px] font-semibold leading-none text-white sm:px-1 sm:text-[11px]"
           style={{
             left: `${c.left}%`,
             width: `${c.width}%`,
@@ -497,23 +486,45 @@ export function CalendarPanel({
         } ${sel ? 'z-10 ring-2 ring-inset ring-white' : today ? 'ring-2 ring-inset ring-coc-gold' : ''}`}
         style={{ height: cellHeight }}
       >
-        <div className="flex items-start justify-between gap-1 px-1.5 pt-1">
-          <span className="flex min-w-0 items-baseline gap-1">
-            <span className="text-lg leading-none">{date.getDate()}</span>
-            <span className="truncate text-[10px] uppercase tracking-wide opacity-70">
+        <div className="flex items-start justify-between gap-0.5 px-1 pt-1 sm:gap-1 sm:px-1.5">
+          <span className="flex min-w-0 items-baseline gap-0.5 sm:gap-1">
+            <span className="text-base leading-none sm:text-lg">{date.getDate()}</span>
+            {/* phones: weekday only (cells are narrow) · sm and up: month · weekday */}
+            <span className="truncate text-[9px] uppercase tracking-wide opacity-70 sm:hidden">
+              {date.toLocaleDateString(undefined, { weekday: 'short' })}
+            </span>
+            <span className="hidden truncate text-[10px] uppercase tracking-wide opacity-70 sm:inline">
               {date.toLocaleDateString(undefined, { month: 'short' })} · {date.toLocaleDateString(undefined, { weekday: 'short' })}
             </span>
           </span>
-          <span className="flex shrink-0 items-center gap-1">
-            {today && <span className="rounded bg-coc-gold px-1 text-[9px] leading-4 text-coc-woodDark">TODAY</span>}
+          <span className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            {today && (
+              <>
+                <span className="h-2 w-2 rounded-full bg-coc-gold sm:hidden" aria-hidden />
+                <span className="hidden rounded bg-coc-gold px-1 text-[9px] leading-4 text-coc-woodDark sm:inline">TODAY</span>
+              </>
+            )}
             {frees > 0 && (
-              <span className="rounded-full bg-coc-good/25 px-1.5 text-[10px] leading-4 text-coc-good">🔔 {frees}</span>
+              <span className="rounded-full bg-coc-good/25 px-1 text-[9px] leading-4 text-coc-good sm:px-1.5 sm:text-[10px]">
+                <span className="hidden sm:inline">🔔 </span>
+                {frees}
+              </span>
             )}
           </span>
         </div>
         {(startsHere || endsHere) && (
-          <span className="absolute bottom-0.5 left-1.5 text-[9px] text-coc-gold">
-            {startsHere ? `⚒ starts ${formatClock(HAMMER_JAM_START_MS)}` : `🏁 ends ${formatClock(HAMMER_JAM_END_MS)}`}
+          <span className="absolute bottom-0.5 left-1 right-0.5 truncate text-[8px] text-coc-gold sm:left-1.5 sm:text-[9px]">
+            {startsHere ? (
+              <>
+                ⚒ <span className="hidden sm:inline">starts </span>
+                {formatClock(HAMMER_JAM_START_MS)}
+              </>
+            ) : (
+              <>
+                🏁 <span className="hidden sm:inline">ends </span>
+                {formatClock(HAMMER_JAM_END_MS)}
+              </>
+            )}
           </span>
         )}
       </button>
@@ -613,7 +624,7 @@ export function CalendarPanel({
       </div>
 
       <p className="mt-2 text-xs text-coc-parchment/80">
-        Tap a day to see when builders, the lab and the pet house get free. 🔔 = how many free up that day. Gray days
+        Tap a day to see when builders, the lab and the pet house get free. The number on a day = how many free up that day. Gray days
         have passed, the white line is now, and tapping a lane name highlights it.
       </p>
 

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { Panel } from './components/Panel';
 import { VillageBar } from './components/VillageBar';
-import gameMeta from './data/gameDataMeta.json';
 import { AuthPage } from './pages/AuthPage';
 import { PlannerPage } from './pages/PlannerPage';
 import { VillagePage } from './pages/VillagePage';
@@ -10,9 +9,6 @@ import { VillageProvider, useVillages } from './villages/VillageContext';
 import { PlanProvider } from './villages/PlanContext';
 
 type Tab = 'village' | 'planner';
-
-const fmt = (iso: string | null): string =>
-  iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'unknown';
 
 function WakingUp({ text }: { text: string }) {
   const [slow, setSlow] = useState(false);
@@ -78,11 +74,6 @@ function Main() {
           )}
         </>
       )}
-
-      <footer className="stroke mt-8 text-center text-xs">
-        Game data: Supercell game files via ClashKing · changed {fmt(gameMeta.sourceUpdatedAt)} · downloaded{' '}
-        {fmt(gameMeta.fetchedAt)}
-      </footer>
     </main>
   );
 }
