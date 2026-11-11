@@ -51,6 +51,8 @@ export interface AvailablePair {
   entityId: number;
   level: number;
   count: number;
+  /** minutes from now when this upgrade would start if it were added to the plan next */
+  startMin: number;
 }
 
 export interface Recommended {
@@ -78,9 +80,13 @@ export function eligibleUpgrades(plan: PlanResult): { available: AvailablePair[]
     const level = t.level + 1;
     if (!hasLevel(t.entityId, level)) continue;
     const key = upgradeKey(t.entityId, level);
+    // same rule as the planner: starts when both the worker and the previous level are free
+    const startMin = Math.max(next.freeAtMin, t.busyUntil);
     const existing = map.get(key);
-    if (existing) existing.count += 1;
-    else map.set(key, { entityId: t.entityId, level, count: 1 });
+    if (existing) {
+      existing.count += 1;
+      existing.startMin = Math.min(existing.startMin, startMin);
+    } else map.set(key, { entityId: t.entityId, level, count: 1, startMin });
   }
 
   const recommended: Recommended[] = [];

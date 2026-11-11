@@ -137,6 +137,7 @@ export function PlannerPage() {
           <CatalogPanel
             hasVillage={snapshot !== null}
             now={now}
+            goldPass={goldPass}
             available={eligible.available}
             recommended={eligible.recommended}
             onAdd={add}

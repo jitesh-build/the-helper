@@ -11,6 +11,33 @@ export const potionTypeFor = (kind: Kind): PotionType =>
 export const kindForPotion = (type: PotionType): Kind =>
   type === 'builder' ? 'builder' : type === 'research' ? 'lab' : 'pet';
 
+/**
+ * The one place that decides what an upgrade really costs and how long it takes.
+ * 1) Hammer Jam halves time and cost if the upgrade STARTS inside the event window.
+ * 2) Gold Pass perks are then taken off the Hammer Jam value (they multiply, they do not add up).
+ * Rounded once, at the end. Used by the planner AND the catalogue so both always agree.
+ */
+export interface EffectiveUpgrade {
+  minutes: number;
+  cost: number;
+  discounted: boolean;
+}
+
+export function effectiveUpgrade(
+  baseMinutes: number,
+  baseCost: number,
+  startMs: number,
+  goldPass: GoldPass,
+): EffectiveUpgrade {
+  const discounted = isHammerJamAt(startMs);
+  const jam = discounted ? 0.5 : 1;
+  return {
+    discounted,
+    minutes: Math.max(1, Math.round(baseMinutes * jam * (1 - goldPass.timeReduction / 100))),
+    cost: Math.round(baseCost * jam * (1 - goldPass.costReduction / 100)),
+  };
+}
+
 export interface QueueItem {
   uid: string;
   entityId: number;
@@ -208,10 +235,10 @@ export function buildPlan(a: PlanArgs): PlanResult {
 
     const type = potionTypeFor(item.kind);
     const startMin = Math.max(slot.freeAt, track.busyUntil);
-    const discounted = isHammerJamAt(now + startMin * 60_000);
-    const jam = discounted ? 0.5 : 1;
-    const finalMinutes = Math.max(1, Math.round(item.baseMinutes * jam * (1 - goldPass.timeReduction / 100)));
-    const finalCost = Math.round(item.baseCost * jam * (1 - goldPass.costReduction / 100));
+    const eff = effectiveUpgrade(item.baseMinutes, item.baseCost, now + startMin * 60_000, goldPass);
+    const { discounted } = eff;
+    const finalMinutes = eff.minutes;
+    const finalCost = eff.cost;
     const endMin = finishWithWindows(startMin, finalMinutes, windows[type], POTION_MULT[type]);
 
     planned.push({
