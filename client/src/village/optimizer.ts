@@ -1,6 +1,6 @@
 import { HAMMER_JAM_END_MS } from '../config/hammerJam';
 import { makeId } from '../utils';
-import { buildPlan, kindForPotion } from './planning';
+import { buildPlan, isJamExempt, kindForPotion } from './planning';
 import type { PlanArgs, PlanResult, PotionBlock } from './planning';
 import { chainWindows } from './potions';
 import type { PotionType } from './potions';
@@ -46,6 +46,16 @@ export function suggestPotions(args: PlanArgs, type: PotionType, owned: number):
     };
   }
 
+  // crafted defences never get the Hammer Jam discount, so potions can't help them and they don't count
+  const boosted = items.filter((i) => !isJamExempt(i.entityId)).length;
+  if (boosted === 0) {
+    return {
+      blocks: [],
+      message: 'Everything queued of this type is a crafted defence. Hammer Jam does not discount those, so potions are not needed for the discount.',
+      tone: 'info',
+    };
+  }
+
   const others = args.blocks.filter((b) => b.type !== type);
   const jamEndMin = (HAMMER_JAM_END_MS - args.now) / 60_000;
 
@@ -62,7 +72,7 @@ export function suggestPotions(args: PlanArgs, type: PotionType, owned: number):
     };
   };
   type Eval = ReturnType<typeof evaluate>;
-  const reachedGoal = (r: Eval): boolean => r.plan.unplaced.length === 0 && r.inJam === items.length;
+  const reachedGoal = (r: Eval): boolean => r.plan.unplaced.length === 0 && r.inJam === boosted;
   const better = (x: Eval, y: Eval): boolean => x.inJam > y.inJam || (x.inJam === y.inJam && x.sumStart < y.sumStart - 0.5);
 
   let seq: number[] = [];

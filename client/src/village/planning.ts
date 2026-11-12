@@ -1,10 +1,16 @@
 import { isHammerJamAt } from '../config/hammerJam';
+import rawGameData from '../data/gameData.json';
 import type { GoldPass, Kind, Resource } from '../types';
 import type { VillageModel, Worker } from './model';
 import { POTION_MULT, chainWindows, finishWithWindows } from './potions';
 import type { PotionType, PotionWindow } from './potions';
 
 export const KINDS: Kind[] = ['builder', 'lab', 'pet'];
+
+const GAME = rawGameData as unknown as Record<string, { x?: boolean }>;
+
+/** Crafted defences get no Hammer Jam discount (Gold Pass perks still apply to them). */
+export const isJamExempt = (entityId: number): boolean => GAME[String(entityId)]?.x === true;
 
 export const potionTypeFor = (kind: Kind): PotionType =>
   kind === 'builder' ? 'builder' : kind === 'lab' ? 'research' : 'pet';
@@ -13,13 +19,14 @@ export const kindForPotion = (type: PotionType): Kind =>
 
 /**
  * The one place that decides what an upgrade really costs and how long it takes.
- * 1) Hammer Jam halves time and cost if the upgrade STARTS inside the event window.
+ * 1) Hammer Jam halves time and cost if the upgrade STARTS inside the event window (not for exempt upgrades).
  * 2) Gold Pass perks are then taken off the Hammer Jam value (they multiply, they do not add up).
  * Rounded once, at the end. Used by the planner AND the catalogue so both always agree.
  */
 export interface EffectiveUpgrade {
   minutes: number;
   cost: number;
+  /** true only when the 50% was actually applied (inside the window AND not exempt) */
   discounted: boolean;
 }
 
@@ -28,8 +35,9 @@ export function effectiveUpgrade(
   baseCost: number,
   startMs: number,
   goldPass: GoldPass,
+  exempt = false,
 ): EffectiveUpgrade {
-  const discounted = isHammerJamAt(startMs);
+  const discounted = isHammerJamAt(startMs) && !exempt;
   const jam = discounted ? 0.5 : 1;
   return {
     discounted,
@@ -93,6 +101,8 @@ export interface PlannedUpgrade {
   finalMinutes: number;
   finalCost: number;
   discounted: boolean;
+  /** Hammer Jam never applies to this upgrade (crafted defence) */
+  exempt: boolean;
   waited: boolean;
 }
 
@@ -235,7 +245,8 @@ export function buildPlan(a: PlanArgs): PlanResult {
 
     const type = potionTypeFor(item.kind);
     const startMin = Math.max(slot.freeAt, track.busyUntil);
-    const eff = effectiveUpgrade(item.baseMinutes, item.baseCost, now + startMin * 60_000, goldPass);
+    const exempt = isJamExempt(item.entityId);
+    const eff = effectiveUpgrade(item.baseMinutes, item.baseCost, now + startMin * 60_000, goldPass, exempt);
     const { discounted } = eff;
     const finalMinutes = eff.minutes;
     const finalCost = eff.cost;
@@ -249,6 +260,7 @@ export function buildPlan(a: PlanArgs): PlanResult {
       finalMinutes,
       finalCost,
       discounted,
+      exempt,
       waited: track.busyUntil > slot.freeAt + 0.5,
     });
     segments.push({

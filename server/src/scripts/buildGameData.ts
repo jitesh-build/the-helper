@@ -34,6 +34,8 @@ interface RawLevel {
   build_cost?: number | null;
   upgrade_time?: number | null;
   upgrade_cost?: number | null;
+  /** present on level 1 of a crafted defence: the buildings that are merged to make it */
+  merge_requirement?: unknown;
 }
 interface RawEntity {
   _id: number;
@@ -49,6 +51,8 @@ interface ClientEntity {
   v: 'home' | 'builderBase';
   g: Source;
   t: Record<string, number>; // level -> seconds it takes to reach that level
+  /** true = crafted defence (made at the Crafting Station): Hammer Jam does not discount it */
+  x?: true;
 }
 interface SeedRow {
   entityId: number;
@@ -164,7 +168,11 @@ async function main(): Promise<void> {
           });
         }
       }
-      client[String(e._id)] = { n: e.name, v: village, g: source, t: times };
+      // Crafted defences (Super Wizard Tower, Multi-Archer Tower, ...) are Defense buildings made by merging.
+      // The Town Hall also has a merge_requirement on one level, which is why the type is checked.
+      const crafted =
+        source === 'buildings' && e.type === 'Defense' && (e.levels ?? []).some((l) => l.merge_requirement !== undefined);
+      client[String(e._id)] = { n: e.name, v: village, g: source, t: times, ...(crafted ? { x: true as const } : {}) };
     }
   }
 
@@ -180,6 +188,7 @@ async function main(): Promise<void> {
 
   console.log(`Source last changed: ${meta.sourceUpdatedAt ?? 'unknown'}`);
   console.log(`gameData.json: ${Object.keys(client).length} entities`);
+  console.log(`crafted defences (no Hammer Jam): ${Object.values(client).filter((c) => c.x).map((c) => c.n).join(', ') || 'NONE'}`);
   console.log(`seed.json: ${seed.size} upgrade rows`);
   const byGroup = new Map<string, number>();
   for (const row of seed.values()) byGroup.set(row.group, (byGroup.get(row.group) ?? 0) + 1);

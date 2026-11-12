@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { errorMessage, searchUpgrades } from '../api';
 import type { GoldPass, Group, Kind, Resource, Upgrade } from '../types';
 import { RESOURCE_META, formatDate, formatMinutes, formatNumber } from '../utils';
-import { effectiveUpgrade } from '../village/planning';
+import { effectiveUpgrade, isJamExempt } from '../village/planning';
 import { upgradeKey } from '../village/progress';
 import type { AvailablePair, Recommended } from '../village/progress';
 import { Panel } from './Panel';
@@ -65,7 +65,8 @@ interface RowProps {
 
 function UpgradeRow({ u, startMs, goldPass, extra, onAdd }: RowProps) {
   const meta = RESOURCE_META[u.resource];
-  const eff = effectiveUpgrade(u.baseMinutes, u.baseCost, startMs, goldPass);
+  const exempt = isJamExempt(u.entityId);
+  const eff = effectiveUpgrade(u.baseMinutes, u.baseCost, startMs, goldPass, exempt);
   const timeChanged = eff.minutes !== u.baseMinutes;
   const costChanged = eff.cost !== u.baseCost;
   return (
@@ -77,6 +78,7 @@ function UpgradeRow({ u, startMs, goldPass, extra, onAdd }: RowProps) {
         </p>
         <p className="text-xs text-coc-parchment/80">
           {eff.discounted && <span className="mr-1 text-coc-good">50% off ·</span>}
+          {exempt && <span className="mr-1 text-coc-gold">crafted defence, no Hammer Jam ·</span>}
           {timeChanged && <span className="mr-1 line-through opacity-60">{formatMinutes(u.baseMinutes)}</span>}
           {formatMinutes(eff.minutes)} ·{' '}
           <span className={meta.className}>

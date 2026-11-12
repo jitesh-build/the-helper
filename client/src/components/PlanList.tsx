@@ -72,8 +72,12 @@ export function PlanList({ plan, now, useGoblins, onToggleGoblins, onRemove, onM
               </p>
               {p.waited && <p className="text-xs text-coc-gold">Waits for the previous level to finish first.</p>}
               <p className="text-xs">
-                <span className={p.discounted ? 'text-coc-good' : 'text-coc-danger'}>
-                  {p.discounted ? '50% off' : 'full price (starts outside Hammer Jam)'}
+                <span className={p.discounted ? 'text-coc-good' : p.exempt ? 'text-coc-gold' : 'text-coc-danger'}>
+                  {p.discounted
+                    ? '50% off'
+                    : p.exempt
+                      ? 'no Hammer Jam discount (crafted defence)'
+                      : 'full price (starts outside Hammer Jam)'}
                 </span>{' '}
                 · <span className="line-through opacity-60">{formatMinutes(p.item.baseMinutes)}</span>{' '}
                 {formatMinutes(p.finalMinutes)} ·{' '}
@@ -106,7 +110,7 @@ export function PlanList({ plan, now, useGoblins, onToggleGoblins, onRemove, onM
       {plan.planned.length > 0 && (
         <div className="mt-3 rounded-lg bg-black/30 p-2 text-sm">
           <p>
-            <b className="text-coc-good">{plan.startedInJam}</b> of {plan.planned.length} start inside Hammer Jam.
+            <b className="text-coc-good">{plan.startedInJam}</b> of {plan.planned.filter((p) => !p.exempt).length} start inside Hammer Jam.
           </p>
           <p>
             Total:{' '}
