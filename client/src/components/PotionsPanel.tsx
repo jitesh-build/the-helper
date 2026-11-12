@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { PotionCounts } from '../types';
 import { formatClock, formatDay, formatStamp } from '../utils';
 import type { PotionBlock } from '../village/planning';
-import { POTION_META } from '../village/potions';
+import { POTION_META, actualRuns } from '../village/potions';
 import type { PotionType, PotionWindow } from '../village/potions';
 import { Panel } from './Panel';
 
@@ -40,6 +40,7 @@ export function PotionsPanel({ owned, blocks, windows, now, onRemove, onSuggest 
   });
 
   const mine = blocks.filter((b) => b.type === type).sort((x, y) => x.startMs - y.startMs);
+  const runs = actualRuns(mine);
 
   return (
     <Panel
@@ -119,16 +120,20 @@ export function PotionsPanel({ owned, blocks, windows, now, onRemove, onSuggest 
         <details className="mt-3 text-sm">
           <summary className="cursor-pointer text-coc-parchment">Edit or remove applied potions</summary>
           <ul className="mt-2 space-y-2">
-            {mine.map((b) => (
+            {mine.map((b) => {
+              const run = runs.get(b.id) ?? { a: b.startMs, b: b.startMs + b.count * 3_600_000 };
+              return (
               <li key={b.id} className="flex items-start justify-between gap-2 rounded-lg bg-black/25 p-2">
                 <span className="min-w-0 break-words">
-                  <b>{b.count}×</b> {formatStamp(b.startMs)} → {formatStamp(b.startMs + b.count * 3_600_000)}
+                  <b>{b.count}×</b> {formatStamp(run.a)} → {formatStamp(run.b)}
+                  {run.a > b.startMs + 1000 && <span className="ml-1 text-xs opacity-70">(waits for the earlier potion)</span>}
                 </span>
                 <button className="btn-red px-2 py-0.5 text-sm" onClick={() => onRemove(b.id)}>
                   ✕
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </details>
       )}

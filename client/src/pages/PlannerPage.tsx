@@ -17,7 +17,7 @@ import { buildVillageModel } from '../village/model';
 import { suggestPotions } from '../village/optimizer';
 import { tryParseVillage } from '../village/parseVillage';
 import { buildPlan } from '../village/planning';
-import { POTION_META } from '../village/potions';
+import { POTION_META, actualRuns } from '../village/potions';
 import type { PotionType } from '../village/potions';
 import { eligibleUpgrades, idleTracks } from '../village/progress';
 
@@ -89,9 +89,17 @@ export function PlannerPage() {
       toast.error(`You only have ${Math.max(0, left)} ${label}${left === 1 ? '' : 's'} left.`);
       return;
     }
-    setBlocks((b) => [...b, { id: makeId(), type, startMs, count }]);
+    const block = { id: makeId(), type, startMs, count };
+    // potions can't overlap: if one is already running then, this one starts when it ends
+    const run = actualRuns([...blocks.filter((x) => x.type === type), block]).get(block.id) ?? {
+      a: startMs,
+      b: startMs + count * 3_600_000,
+    };
+    setBlocks((b) => [...b, block]);
     toast.success(
-      `Applied ${count} ${label}${count > 1 ? 's' : ''} from ${formatStamp(startMs)} until ${formatClock(startMs + count * 3_600_000)}. Press “Save plan” to keep it.`,
+      `Applied ${count} ${label}${count > 1 ? 's' : ''} from ${formatStamp(run.a)} until ${formatClock(run.b)}${
+        run.a > startMs + 1000 ? ' (it waits for your earlier potion to end)' : ''
+      }. Press “Save plan” to keep it.`,
     );
   };
 

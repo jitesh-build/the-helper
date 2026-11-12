@@ -36,6 +36,22 @@ export function chainWindows(blocks: { startMin: number; count: number }[]): Pot
 }
 
 /**
+ * Where each potion block REALLY runs (ms). Potions can't overlap, so a block that would start while an
+ * earlier one is running waits for it. Pass the blocks of ONE potion type. Same rule as chainWindows.
+ */
+export function actualRuns(blocks: { id: string; startMs: number; count: number }[]): Map<string, { a: number; b: number }> {
+  const out = new Map<string, { a: number; b: number }>();
+  let cursor = -Infinity;
+  for (const blk of [...blocks].sort((x, y) => x.startMs - y.startMs)) {
+    const a = Math.max(blk.startMs, cursor);
+    const b = a + blk.count * POTION_MINUTES * 60_000;
+    out.set(blk.id, { a, b });
+    cursor = b;
+  }
+  return out;
+}
+
+/**
  * Minute at which a job finishes. It starts at `startMin` and needs `workMin` minutes of normal-speed
  * work; inside a potion window the worker does `mult` minutes of work per minute.
  */

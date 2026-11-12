@@ -6,7 +6,7 @@ import type { GoldPass, Kind, PotionCounts } from '../types';
 import { formatClock, formatDay, formatMinutes, toTimeInput } from '../utils';
 import { KINDS, potionTypeFor } from '../village/planning';
 import type { PlanResult, PotionBlock } from '../village/planning';
-import { POTION_META } from '../village/potions';
+import { POTION_META, actualRuns } from '../village/potions';
 import type { PotionType } from '../village/potions';
 import { Panel } from './Panel';
 
@@ -155,11 +155,16 @@ export function DayDetail({
   // potions: only the type that belongs to the selected group
   const potionType = potionTypeFor(kind);
   const pm = POTION_META[potionType];
-  const dayBlocks = blocks
-    .filter((b) => b.type === potionType && b.startMs < end && b.startMs + b.count * 3_600_000 > start)
-    .sort((x, y) => x.startMs - y.startMs);
+  // where each potion really runs (a potion that overlaps an earlier one waits for it)
+  const typeBlocks = blocks.filter((b) => b.type === potionType);
+  const runs = actualRuns(typeBlocks);
+  const dayBlocks = typeBlocks
+    .map((b) => ({ b, run: runs.get(b.id) ?? { a: b.startMs, b: b.startMs + b.count * 3_600_000 } }))
+    .filter(({ run }) => run.a < end && run.b > start)
+    .sort((x, y) => x.run.a - y.run.a);
 
-  const minMs = Math.max(start, HAMMER_JAM_START_MS, now);
+  // whole minutes only: `now` has seconds, but the time box doesn't, so 13:32 must be allowed at 13:32:40
+  const minMs = Math.ceil(Math.max(start, HAMMER_JAM_START_MS, now) / 60_000) * 60_000;
   const maxMs = Math.min(end, HAMMER_JAM_END_MS) - 60_000;
   const canApply = minMs <= maxMs;
   const left = owned - planned;
@@ -298,10 +303,11 @@ export function DayDetail({
 
           {dayBlocks.length > 0 && (
             <ul className="mt-2 space-y-1">
-              {dayBlocks.map((b) => (
+              {dayBlocks.map(({ b, run }) => (
                 <li key={b.id} className="flex items-start justify-between gap-2 rounded-lg bg-coc-elixir/20 p-2">
                   <span className="min-w-0 break-words">
-                    {pm.icon} <b>{b.count}×</b> {when(b.startMs)} → {when(b.startMs + b.count * 3_600_000)}
+                    {pm.icon} <b>{b.count}×</b> {when(run.a)} → {when(run.b)}
+                    {run.a > b.startMs + 1000 && <span className="ml-1 text-xs opacity-70">(waits for the earlier potion)</span>}
                   </span>
                   <button className="btn-red px-2 py-0.5 text-sm" onClick={() => onRemoveBlock(b.id)}>
                     ✕
@@ -446,7 +452,11 @@ export function CalendarPanel({
             boxShadow: 'inset 0 -2px 0 rgba(0,0,0,.25)',
           }}
         >
-          {c.width >= 9 && <span className="truncate">🧪 ×{Math.round((w.b - w.a) / 60)}</span>}
+          {c.width >= 9 && (
+            <span className="truncate">
+              {POTION_META[potionTypeFor(kind)].icon} ×{Math.round((w.b - w.a) / 60)}
+            </span>
+          )}
         </div>,
       );
     });
@@ -578,7 +588,7 @@ export function CalendarPanel({
               : 'Hammer Jam is over'}
         </Pill>
         <Pill tone="good">
-          {plan.planned.length} planned · {plan.startedInJam} start inside Hammer Jam
+          {plan.planned.length} planned · {plan.startedInJam} of {plan.planned.filter((p) => !p.exempt).length} start inside Hammer Jam
         </Pill>
       </div>
 
@@ -600,7 +610,7 @@ export function CalendarPanel({
         {hasPotions && (
           <span className="flex items-center gap-1.5 rounded-full border-2 border-coc-woodDark bg-black/25 px-2 py-0.5 text-xs">
             <span className="inline-block h-3 w-5 rounded-sm border border-black/50 bg-coc-elixir" />
-            🧪 potions
+            {POTION_META[potionTypeFor(kind)].icon} potions
           </span>
         )}
         <span className="flex items-center gap-1.5 rounded-full border-2 border-coc-woodDark bg-black/25 px-2 py-0.5 text-xs">
