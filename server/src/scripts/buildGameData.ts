@@ -148,25 +148,39 @@ async function main(): Promise<void> {
       const resource = e.upgrade_resource ? RESOURCES[e.upgrade_resource] : undefined;
       const { kind, group } = classify(source, e);
       const times: Record<string, number> = {};
+      let maxTarget = 0; // highest level reachable by an upgrade_* record
 
       for (const l of e.levels ?? []) {
+        // The source stores the numbers in two different ways:
+        //  - build_*   (buildings, traps): the record AT level N is the time/cost to REACH level N.
+        //  - upgrade_* (troops, spells, siege, heroes, pets, guardians): the record AT level N is the time/cost
+        //    to go FROM level N TO N+1. The last level (the max) has 0/0 because there is nothing left to upgrade.
+        // `target` is always the level you are upgrading TO, which is what the whole app uses.
+        const fromThisLevel = l.build_time == null && l.upgrade_time != null;
+        const target = fromThisLevel ? l.level + 1 : l.level;
         const seconds = l.build_time ?? l.upgrade_time ?? 0;
         const cost = l.build_cost ?? l.upgrade_cost ?? 0;
         if (seconds <= 0) continue;
-        times[String(l.level)] = seconds;
+        times[String(target)] = seconds;
+        if (fromThisLevel) maxTarget = Math.max(maxTarget, target);
 
         if (village === 'home' && resource) {
-          seed.set(`${e._id}|${l.level}`, {
+          seed.set(`${e._id}|${target}`, {
             entityId: e._id,
             name: e.name,
             group,
-            level: l.level,
+            level: target,
             kind,
             resource,
             baseMinutes: Math.max(1, Math.round(seconds / 60)),
             baseCost: Math.round(cost),
           });
         }
+      }
+      // Sanity check for upgrade_* data: the highest upgrade target must be the entity's last level.
+      // If it is not, the source changed shape and levels would be off again, so say so loudly.
+      if (village === 'home' && maxTarget > 0 && maxTarget !== (e.levels ?? []).length) {
+        console.warn(`WARNING: ${e.name} (${e._id}) has ${(e.levels ?? []).length} levels but upgrades only reach ${maxTarget} (the source may be incomplete for this one).`);
       }
       // Crafted defences (Super Wizard Tower, Multi-Archer Tower, ...) are Defense buildings made by merging.
       // The Town Hall also has a merge_requirement on one level, which is why the type is checked.
